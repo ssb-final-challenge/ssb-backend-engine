@@ -11,7 +11,7 @@ const auth = { type: "string", example: "Bearer eyJhbGciOiJIUzI1NiIs..." };
 export const openapi = {
   openapi: "3.0.3",
   info: { title: "SSB Inspection API", version: "1.0.0", description: "Remote coffee quality inspection API for sellers and buyers." },
-  servers: [{ url: "http://localhost:8787/api/v1", description: "Local development" }],
+  servers: [{ url: "/api/v1", description: "Current API host" }],
   tags: [{ name: "Auth" }, { name: "Inspections" }, { name: "LiveKit" }],
   components: {
     securitySchemes: { bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" } },

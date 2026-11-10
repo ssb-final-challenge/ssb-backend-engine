@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import authRouter from "./routes/auth-route.js";
 import inspectionRouter from "./routes/inspection-route.js";
 import { openapi } from "./docs/openapi.js";
@@ -6,6 +7,7 @@ import { openapi } from "./docs/openapi.js";
 const port = Number.parseInt(process.env.PORT ?? "8787", 10);
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/inspections", inspectionRouter);
