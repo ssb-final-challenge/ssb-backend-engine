@@ -14,6 +14,9 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/inspections", inspectionRouter);
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 app.get("/api/docs/openapi.json", (_req, res) => res.json(openapi));
+app.get("/swagger", (_req, res) => res.redirect("/api/docs/"));
+app.get("/swagger/openapi.json", (_req, res) => res.json(openapi));
+app.get("/", (_req, res) => res.redirect("/api/docs/"));
 
 app.get("/health", (_, res) => res.json({ ok: true }));
 if (!process.env.VERCEL) {
