@@ -2,9 +2,26 @@
   "name": "exportra-livekit-token-server",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node server.mjs" },
+  "scripts": {
+    "start": "node --env-file=.env --import=tsx server.ts",
+    "build": "tsc --noEmit",
+    "prisma:generate": "prisma generate",
+    "prisma:validate": "prisma validate",
+    "prisma:studio": "prisma studio",
+    "prisma:migrate": "prisma migrate dev"
+  },
   "dependencies": {
+    "@prisma/client": "^7.10.1",
+    "@prisma/adapter-pg": "^7.10.1",
     "express": "^5.1.0",
-    "livekit-server-sdk": "^2.13.3"
+    "livekit-server-sdk": "^2.13.3",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "prisma": "^7.10.1",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
   }
 }

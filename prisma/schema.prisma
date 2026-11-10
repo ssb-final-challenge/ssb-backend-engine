@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum RoomStatus {
+  scheduled
+  active
+  completed
+}
+
+enum RequestStatus {
+  pending
+  accepted
+  rejected
+}
+
+model User {
+  id              Int                 @id @default(autoincrement())
+  name            String              @db.VarChar(100)
+  email           String              @unique @db.VarChar(255)
+  passwordHash    String              @map("password_hash") @db.VarChar(255)
+  role            String              @db.VarChar(20)
+  createdAt       DateTime            @default(now()) @map("created_at")
+  coffeeLots      CoffeeLot[]
+  roomMemberships RoomMember[]
+  requests        InspectionRequest[]
+  captures        Inspection[]
+  reports         Report[]
+  @@map("users")
+}
+
+model CoffeeLot {
+  id              Int               @id @default(autoincrement())
+  sellerId        Int               @map("seller_id")
+  lotCode         String            @unique @map("lot_code") @db.VarChar(100)
+  name            String            @db.VarChar(255)
+  variety         String            @db.VarChar(100)
+  origin          String            @db.VarChar(255)
+  quantityKg      Decimal           @map("quantity_kg") @db.Decimal(12, 2)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  seller          User              @relation(fields: [sellerId], references: [id])
+  inspectionRooms InspectionRoom[]
+  @@map("coffee_lots")
+}
+
+model InspectionRoom {
+  id          Int                 @id @default(autoincrement())
+  coffeeLotId Int                 @map("coffee_lot_id")
+  roomCode    String              @unique @map("room_code") @db.VarChar(50)
+  status      RoomStatus          @default(scheduled)
+  scheduledAt DateTime?           @map("scheduled_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  coffeeLot   CoffeeLot           @relation(fields: [coffeeLotId], references: [id])
+  members     RoomMember[]
+  requests    InspectionRequest[]
+  inspections Inspection[]
+  reports     Report[]
+  @@map("inspection_rooms")
+}
+
+model RoomMember {
+  id       Int            @id @default(autoincrement())
+  roomId   Int            @map("room_id")
+  userId   Int            @map("user_id")
+  role     String         @db.VarChar(20)
+  joinedAt DateTime       @default(now()) @map("joined_at")
+  room     InspectionRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([roomId, userId])
+  @@map("room_members")
+}
+
+model InspectionRequest {
+  id          Int             @id @default(autoincrement())
+  roomId      Int             @map("room_id")
+  requestedBy Int             @map("requested_by")
+  requestType String          @map("request_type") @db.VarChar(50)
+  status      RequestStatus   @default(pending)
+  message     String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  room        InspectionRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  requester   User            @relation(fields: [requestedBy], references: [id])
+  @@map("inspection_requests")
+}
+
+model Inspection {
+  id                  Int             @id @default(autoincrement())
+  roomId              Int             @map("room_id")
+  capturedBy          Int             @map("captured_by")
+  sampleNumber        Int             @map("sample_number")
+  layer               String          @db.VarChar(20)
+  imageUrl            String          @map("image_url") @db.VarChar(500)
+  modelVersion        String          @map("model_version") @db.VarChar(50)
+  qualityScore        Decimal         @map("quality_score") @db.Decimal(5, 2)
+  healthyPercent      Decimal         @map("healthy_percent") @db.Decimal(5, 2)
+  damagedPercent      Decimal         @map("damaged_percent") @db.Decimal(5, 2)
+  insectDamagePercent Decimal         @map("insect_damage_percent") @db.Decimal(5, 2)
+  confidencePercent   Decimal         @map("confidence_percent") @db.Decimal(5, 2)
+  createdAt           DateTime        @default(now()) @map("created_at")
+  room                InspectionRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  capturer            User            @relation(fields: [capturedBy], references: [id])
+  detections          Detection[]
+  @@map("inspections")
+}
+
+model Detection {
+  id           Int        @id @default(autoincrement())
+  inspectionId Int        @map("inspection_id")
+  label        String     @db.VarChar(100)
+  confidence   Decimal    @db.Decimal(5, 4)
+  x            Decimal    @db.Decimal(8, 6)
+  y            Decimal    @db.Decimal(8, 6)
+  width        Decimal    @db.Decimal(8, 6)
+  height       Decimal    @db.Decimal(8, 6)
+  inspection   Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  @@map("detections")
+}
+
+model Report {
+  id                Int             @id @default(autoincrement())
+  roomId            Int             @map("room_id")
+  generatedBy       Int             @map("generated_by")
+  finalQualityScore Decimal         @map("final_quality_score") @db.Decimal(5, 2)
+  summary           String
+  pdfUrl            String?         @map("pdf_url") @db.VarChar(500)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  room              InspectionRoom  @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  generator         User            @relation(fields: [generatedBy], references: [id])
+  @@map("reports")
+}
