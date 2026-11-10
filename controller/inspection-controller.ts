@@ -5,6 +5,15 @@ import { errorMessage, failure, success } from "../lib/http-response.js";
 type AuthRequest = Parameters<RequestHandler>[0] & { user?: { id: number; name: string; role: string } };
 const userId = (req: AuthRequest) => req.user?.id;
 const param = (req: AuthRequest, name: string) => String(req.params[name]);
+const queryValue = (req: AuthRequest, name: string) => typeof req.query[name] === "string" ? req.query[name] as string : undefined;
+const historyFilters = (req: AuthRequest) => ({
+  roomCode: queryValue(req, "roomCode"),
+  coffeeLotId: queryValue(req, "coffeeLotId") ? Number(queryValue(req, "coffeeLotId")) : undefined,
+  capturedBy: queryValue(req, "capturedBy") ? Number(queryValue(req, "capturedBy")) : undefined,
+  sampleNumber: queryValue(req, "sampleNumber") ? Number(queryValue(req, "sampleNumber")) : undefined,
+  from: queryValue(req, "from") ? new Date(queryValue(req, "from")!) : undefined,
+  to: queryValue(req, "to") ? new Date(queryValue(req, "to")!) : undefined
+});
 const execute = (operation: (req: AuthRequest) => Promise<unknown>, status = 200, message = "Success"): RequestHandler => async (req, res) => {
   try {
     const data = await operation(req as AuthRequest);
@@ -23,7 +32,7 @@ export default {
   listLots: execute(() => service.listLots()),
   getLot: execute((req) => service.getLot(Number(req.params.id))),
   createLot: execute((req) => service.createLot(userId(req)!, req.body), 201, "Lot created"),
-  getAllHistories: execute(() => service.getAllHistories()),
+  getAllHistories: execute((req) => service.getAllHistories(historyFilters(req))),
   getHistoryById: execute((req) => service.getHistoryById(Number(req.params.id))),
   createRoom: execute((req) => service.createRoom(userId(req)!, req.body), 201, "Room created"),
   getRoom: execute((req) => service.getRoom(param(req, "roomCode"))),

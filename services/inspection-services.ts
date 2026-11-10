@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { AccessToken } from "livekit-server-sdk";
+import type { Prisma } from "@prisma/client";
 
 export async function createLiveKitToken(user: { id: number; name: string; role: string }, roomName: string) {
   const livekitUrl = process.env.LIVEKIT_URL;
@@ -16,7 +17,24 @@ export async function createLiveKitToken(user: { id: number; name: string; role:
 export const listLots = () => prisma.coffeeLot.findMany({ include: { seller: { select: { id: true, name: true, role: true } } }, orderBy: { createdAt: "desc" } });
 export const getLot = (id: number) => prisma.coffeeLot.findUnique({ where: { id }, include: { seller: { select: { id: true, name: true } }, inspectionRooms: true } });
 export const createLot = (sellerId: number, body: any) => prisma.coffeeLot.create({ data: { sellerId, lotCode: body.lotCode, name: body.name, variety: body.variety, origin: body.origin, quantityKg: body.quantityKg } });
-export const getAllHistories = () => prisma.inspection.findMany({ include: { detections: true, room: { include: { coffeeLot: true } } }, orderBy: { createdAt: "desc" } });
+export interface HistoryFilters {
+  roomCode?: string;
+  coffeeLotId?: number;
+  capturedBy?: number;
+  sampleNumber?: number;
+  from?: Date;
+  to?: Date;
+}
+
+export const getAllHistories = (filters: HistoryFilters = {}) => {
+  const where: Prisma.InspectionWhereInput = {
+    ...(filters.capturedBy ? { capturedBy: filters.capturedBy } : {}),
+    ...(filters.sampleNumber ? { sampleNumber: filters.sampleNumber } : {}),
+    ...(filters.from || filters.to ? { createdAt: { ...(filters.from ? { gte: filters.from } : {}), ...(filters.to ? { lte: filters.to } : {}) } } : {}),
+    ...(filters.roomCode || filters.coffeeLotId ? { room: { ...(filters.roomCode ? { roomCode: filters.roomCode } : {}), ...(filters.coffeeLotId ? { coffeeLotId: filters.coffeeLotId } : {}) } } : {})
+  };
+  return prisma.inspection.findMany({ where, include: { detections: true, room: { include: { coffeeLot: true } } }, orderBy: { createdAt: "desc" } });
+};
 export const getHistoryById = (id: number) => prisma.inspection.findUnique({ where: { id }, include: { detections: true, room: { include: { coffeeLot: true } } } });
 export const createRoom = (userId: number, body: any) => prisma.inspectionRoom.create({ data: { coffeeLotId: Number(body.coffeeLotId), roomCode: `room-${Date.now().toString(36)}`, scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined, members: { create: { userId, role: body.role ?? "seller" } } }, include: { coffeeLot: true } });
 export const getRoom = (roomCode: string) => prisma.inspectionRoom.findUnique({ where: { roomCode }, include: { coffeeLot: true, members: true, requests: true, inspections: { include: { detections: true } }, reports: true } });
