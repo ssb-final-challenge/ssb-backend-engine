@@ -16,4 +16,8 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 app.get("/api/docs/openapi.json", (_req, res) => res.json(openapi));
 
 app.get("/health", (_, res) => res.json({ ok: true }));
-app.listen(port, () => console.log(`SSB API listening on ${port}`));
+if (!process.env.VERCEL) {
+  app.listen(port, () => console.log(`SSB API listening on ${port}`));
+}
+
+export { app };
