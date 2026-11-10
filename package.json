@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file=.env --watch --import=tsx server.ts",
+    "test:e2e": "tsx test/e2e-core-flow.ts",
     "start": "node --env-file=.env --import=tsx server.ts",
     "build": "tsc --noEmit",
     "prisma:generate": "prisma generate",
