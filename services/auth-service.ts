@@ -1,7 +1,7 @@
-import PrismaClient from "@prisma/client";
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import { prisma } from "../lib/prisma.js";
+import { createAccessToken } from "../lib/jwt.js";
 
 const scrypt = promisify(scryptCallback);
 
@@ -24,14 +24,16 @@ export async function registerUser(input: { name: string; email: string; passwor
   if (!input.name.trim() || !email || input.password.length < 8) throw new Error("Invalid registration data");
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw new Error("Email is already registered");
-  return prisma.user.create({
+  const user = await prisma.user.create({
     data: { name: input.name.trim(), email, passwordHash: await hashPassword(input.password), role: input.role },
     select: { id: true, name: true, email: true, role: true, createdAt: true }
   });
+  return { user, accessToken: createAccessToken(user) };
 }
 
 export async function loginUser(emailInput: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email: emailInput.trim().toLowerCase() } });
   if (!user || !(await verifyPassword(password, user.passwordHash))) throw new Error("Invalid email or password");
-  return { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt };
+  const publicUser = { id: user.id, name: user.name, email: user.email, role: user.role, createdAt: user.createdAt };
+  return { user: publicUser, accessToken: createAccessToken(user) };
 }

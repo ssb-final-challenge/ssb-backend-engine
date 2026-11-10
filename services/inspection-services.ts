@@ -1,5 +1,21 @@
 import { prisma } from "../lib/prisma.js";
+import { AccessToken } from "livekit-server-sdk";
 
+export async function createLiveKitToken(user: { id: number; name: string; role: string }, roomName: string) {
+  const livekitUrl = process.env.LIVEKIT_URL;
+  const apiKey = process.env.LIVEKIT_API_KEY;
+  const apiSecret = process.env.LIVEKIT_API_SECRET;
+  if (!livekitUrl || !apiKey || !apiSecret) throw new Error("LiveKit configuration is missing");
+
+  const role = user.role === "buyer" ? "buyer" : "farmer";
+  const token = new AccessToken(apiKey, apiSecret, { identity: String(user.id), name: user.name, ttl: "2h" });
+  token.addGrant({ roomJoin: true, room: roomName, canPublish: role === "farmer", canPublishData: true, canSubscribe: true });
+  return { serverUrl: livekitUrl, participantToken: await token.toJwt(), roomName, role };
+}
+
+export const listLots = () => prisma.coffeeLot.findMany({ include: { seller: { select: { id: true, name: true, role: true } } }, orderBy: { createdAt: "desc" } });
+export const getLot = (id: number) => prisma.coffeeLot.findUnique({ where: { id }, include: { seller: { select: { id: true, name: true } }, inspectionRooms: true } });
+export const createLot = (sellerId: number, body: any) => prisma.coffeeLot.create({ data: { sellerId, lotCode: body.lotCode, name: body.name, variety: body.variety, origin: body.origin, quantityKg: body.quantityKg } });
 export const getAllHistories = () => prisma.inspection.findMany({ include: { detections: true, room: { include: { coffeeLot: true } } }, orderBy: { createdAt: "desc" } });
 export const getHistoryById = (id: number) => prisma.inspection.findUnique({ where: { id }, include: { detections: true, room: { include: { coffeeLot: true } } } });
 export const createRoom = (userId: number, body: any) => prisma.inspectionRoom.create({ data: { coffeeLotId: Number(body.coffeeLotId), roomCode: `room-${Date.now().toString(36)}`, scheduledAt: body.scheduledAt ? new Date(body.scheduledAt) : undefined, members: { create: { userId, role: body.role ?? "seller" } } }, include: { coffeeLot: true } });
