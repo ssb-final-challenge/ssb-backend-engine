@@ -3,6 +3,7 @@ import cors from "cors";
 import authRouter from "./routes/auth-route.js";
 import inspectionRouter from "./routes/inspection-route.js";
 import { openapi } from "./docs/openapi.js";
+import { privacyPolicyHtml } from "./docs/privacy-policy.js";
 
 const port = Number.parseInt(process.env.PORT ?? "8787", 10);
 
@@ -26,6 +27,7 @@ app.get("/api/docs/openapi.json", (_req, res) => res.json(openapi));
 app.get("/swagger", (_req, res) => res.redirect("/api/docs/"));
 app.get("/swagger/openapi.json", (_req, res) => res.json(openapi));
 app.get("/", (_req, res) => res.redirect("/api/docs/"));
+app.get(["/privacy-policy", "/privacy-policy/", "/api/privacy-policy", "/api/v1/privacy-policy"], (_req, res) => res.type("html").send(privacyPolicyHtml));
 
 app.get("/health", (_, res) => res.json({ ok: true }));
 if (!process.env.VERCEL) {
