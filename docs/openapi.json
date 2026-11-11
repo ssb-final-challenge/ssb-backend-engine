@@ -1,0 +1,39 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SSB Inspection API",
+    "version": "1.0.0",
+    "description": "Remote coffee quality inspection API for sellers and buyers."
+  },
+  "servers": [{ "url": "/api/v1" }],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "Success": { "type": "object", "properties": { "success": { "type": "boolean" }, "message": { "type": "string" }, "data": {} } },
+      "Error": { "type": "object", "properties": { "success": { "type": "boolean", "example": false }, "error": { "type": "object", "properties": { "code": { "type": "string" }, "message": { "type": "string" } } } } },
+      "User": { "type": "object", "properties": { "id": { "type": "integer" }, "name": { "type": "string" }, "email": { "type": "string", "format": "email" }, "role": { "type": "string", "enum": ["farmer", "seller", "buyer"] } } },
+      "Detection": { "type": "object", "required": ["label", "confidence", "x", "y", "width", "height"], "properties": { "label": { "type": "string" }, "confidence": { "type": "number" }, "x": { "type": "number" }, "y": { "type": "number" }, "width": { "type": "number" }, "height": { "type": "number" } } },
+      "InspectionInput": { "type": "object", "required": ["sampleNumber", "layer", "imageUrl", "modelVersion", "qualityScore", "healthyPercent", "damagedPercent", "insectDamagePercent", "confidencePercent"], "properties": { "sampleNumber": { "type": "integer", "example": 1 }, "layer": { "type": "string", "example": "top" }, "imageUrl": { "type": "string", "format": "uri" }, "modelVersion": { "type": "string" }, "qualityScore": { "type": "number" }, "healthyPercent": { "type": "number" }, "damagedPercent": { "type": "number" }, "insectDamagePercent": { "type": "number" }, "confidencePercent": { "type": "number" }, "detections": { "type": "array", "items": { "$ref": "#/components/schemas/Detection" } } } }
+    },
+    "parameters": { "id": { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }, "roomCode": { "name": "roomCode", "in": "path", "required": true, "schema": { "type": "string" } } },
+    "responses": { "Success": { "description": "Successful response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Success" } } } }, "Error": { "description": "Error response", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } } }
+  },
+  "paths": {
+    "/auth/register": { "post": { "summary": "Register user", "requestBody": { "required": true, "content": { "application/json": { "example": { "name": "Gayo Seller", "email": "seller@example.com", "password": "password123", "role": "farmer" } } } }, "responses": { "201": { "description": "Registered user and JWT" }, "400": { "$ref": "#/components/responses/Error" } } } },
+    "/auth/login": { "post": { "summary": "Login user", "requestBody": { "required": true, "content": { "application/json": { "example": { "email": "seller@example.com", "password": "password123" } } } }, "responses": { "200": { "description": "User and JWT" }, "401": { "$ref": "#/components/responses/Error" } } } },
+    "/auth/apple": { "post": { "summary": "Sign in with Apple", "description": "Verifies the Apple identity token server-side and returns an application JWT.", "requestBody": { "required": true, "content": { "application/json": { "example": { "identity_token": "eyJhbGciOiJSUzI1NiIs...", "authorization_code": "c123...", "apple_user_id": "001234.abc...", "name": "Budi Santoso", "email": "budi@privaterelay.appleid.com", "role": "buyer", "nonce": "client-nonce" } } } }, "responses": { "200": { "$ref": "#/components/responses/Success" }, "401": { "$ref": "#/components/responses/Error" } } } },
+    "/inspections/lots": { "get": { "security": [{ "bearerAuth": [] }], "summary": "List coffee lots", "responses": { "200": { "$ref": "#/components/responses/Success" } } }, "post": { "security": [{ "bearerAuth": [] }], "summary": "Create coffee lot", "requestBody": { "required": true, "content": { "application/json": { "example": { "lotCode": "LOT-GAYO-001", "name": "Gayo Arabica", "variety": "Arabica", "origin": "Aceh Gayo", "quantityKg": 250 } } } }, "responses": { "201": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/lots/{id}": { "get": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/id" }], "responses": { "200": { "$ref": "#/components/responses/Success" }, "404": { "$ref": "#/components/responses/Error" } } } },
+    "/inspections/rooms": { "post": { "security": [{ "bearerAuth": [] }], "summary": "Create inspection room", "requestBody": { "required": true, "content": { "application/json": { "example": { "coffeeLotId": 1, "role": "seller" } } } }, "responses": { "201": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/rooms/{roomCode}": { "get": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/roomCode" }], "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/rooms/{roomCode}/join": { "post": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/roomCode" }], "requestBody": { "content": { "application/json": { "example": { "role": "buyer" } } } }, "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/rooms/{roomCode}/requests": { "post": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/roomCode" }], "requestBody": { "content": { "application/json": { "example": { "requestType": "rescan", "message": "Inspect the other side" } } } }, "responses": { "201": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/rooms/{roomCode}/inspections": { "post": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/roomCode" }], "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/InspectionInput" } } } }, "responses": { "201": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/history": { "get": { "security": [{ "bearerAuth": [] }], "summary": "Retrieve inspection history", "parameters": [{ "name": "roomCode", "in": "query", "schema": { "type": "string" } }, { "name": "coffeeLotId", "in": "query", "schema": { "type": "integer" } }, { "name": "capturedBy", "in": "query", "schema": { "type": "integer" } }, { "name": "sampleNumber", "in": "query", "schema": { "type": "integer" } }, { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" } }, { "name": "to", "in": "query", "schema": { "type": "string", "format": "date-time" } }], "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/history/{id}": { "get": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/id" }], "responses": { "200": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/rooms/{roomCode}/reports": { "post": { "security": [{ "bearerAuth": [] }], "parameters": [{ "$ref": "#/components/parameters/roomCode" }], "requestBody": { "content": { "application/json": { "example": { "finalQualityScore": 86.5, "summary": "Good quality sample", "pdfUrl": "https://cdn.example.com/report.pdf" } } } }, "responses": { "201": { "$ref": "#/components/responses/Success" } } } },
+    "/inspections/livekit/token": { "post": { "security": [{ "bearerAuth": [] }], "requestBody": { "content": { "application/json": { "example": { "roomName": "room-mwacb7lc" } } } }, "responses": { "200": { "$ref": "#/components/responses/Success" } } } }
+  }
+}

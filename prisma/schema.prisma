@@ -22,7 +22,8 @@ model User {
   id              Int                 @id @default(autoincrement())
   name            String              @db.VarChar(100)
   email           String              @unique @db.VarChar(255)
-  passwordHash    String              @map("password_hash") @db.VarChar(255)
+  passwordHash    String?             @map("password_hash") @db.VarChar(255)
+  appleUserId     String?             @unique @map("apple_user_id") @db.VarChar(255)
   role            String              @db.VarChar(20)
   createdAt       DateTime            @default(now()) @map("created_at")
   coffeeLots      CoffeeLot[]
