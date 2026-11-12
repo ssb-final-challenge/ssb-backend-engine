@@ -24,8 +24,11 @@ async function verifyPassword(password: string, stored: string | null): Promise<
 const appleKeys = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"));
 
 export async function verifyAppleIdentityToken(identityToken: string, nonce?: string) {
-  const audience = process.env.APPLE_BUNDLE_ID;
-  if (!audience) throw new Error("APPLE_BUNDLE_ID is required");
+  const audience = (process.env.APPLE_BUNDLE_IDS ?? process.env.APPLE_BUNDLE_ID ?? "")
+    .split(",")
+    .map((bundleId) => bundleId.trim())
+    .filter(Boolean);
+  if (audience.length === 0) throw new Error("APPLE_BUNDLE_IDS is required");
   const { payload } = await jwtVerify(identityToken, appleKeys, { issuer: "https://appleid.apple.com", audience });
   if (!payload.sub) throw new Error("Apple subject is missing");
   if (nonce && payload.nonce !== nonce) throw new Error("Invalid Apple nonce");
