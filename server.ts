@@ -4,6 +4,8 @@ import authRouter from "./routes/auth-route.js";
 import inspectionRouter from "./routes/inspection-route.js";
 import { openapi } from "./docs/openapi.js";
 import { privacyPolicyHtml } from "./docs/privacy-policy.js";
+import { supportHtml, supportJson } from "./docs/support.js";
+import { copyrightHtml, copyrightJson } from "./docs/copyright.js";
 
 const port = Number.parseInt(process.env.PORT ?? "8787", 10);
 
@@ -28,6 +30,10 @@ app.get("/swagger", (_req, res) => res.redirect("/api/docs/"));
 app.get("/swagger/openapi.json", (_req, res) => res.json(openapi));
 app.get("/", (_req, res) => res.redirect("/api/docs/"));
 app.get(["/privacy-policy", "/privacy-policy/", "/api/privacy-policy", "/api/v1/privacy-policy"], (_req, res) => res.type("html").send(privacyPolicyHtml));
+app.get(["/support", "/support/", "/api/support", "/api/v1/support"], (_req, res) => res.type("html").send(supportHtml));
+app.get(["/copyright", "/copyright/"], (_req, res) => res.type("html").send(copyrightHtml));
+app.get(["/api/copyright", "/api/v1/copyright"], (_req, res) => res.json(copyrightJson));
+app.get(["/api/support.json", "/api/v1/support.json"], (_req, res) => res.json(supportJson));
 
 app.get("/health", (_, res) => res.json({ ok: true }));
 if (!process.env.VERCEL) {
