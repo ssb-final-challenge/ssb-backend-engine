@@ -109,7 +109,34 @@ Request:
 
 Response `200`: same structure as registration.
 
-## 3. Sign in with Apple
+## 3. Delete account
+
+`DELETE /auth/account`
+
+This endpoint requires only the authenticated user's JWT. No request body is needed.
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+The operation removes the user account, owned coffee lots and rooms, room memberships, requests, submitted inspections and detections, and generated reports. Memberships in rooms owned by other users are removed without deleting those rooms.
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "message": "Account deleted successfully",
+  "data": {
+    "userId": 1,
+    "deleted": true
+  }
+}
+```
+
+This action is permanent and cannot be undone.
+
+## 4. Sign in with Apple
 
 `POST /auth/apple`
 

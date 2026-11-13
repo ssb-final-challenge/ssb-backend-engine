@@ -51,6 +51,33 @@ export async function signInWithApple(input: { identityToken: string; appleUserI
   return { user: publicUser, accessToken: createAccessToken(user) };
 }
 
+export async function deleteAccount(userId: number) {
+  return prisma.$transaction(async (transaction) => {
+    const ownedRooms = await transaction.inspectionRoom.findMany({
+      where: { coffeeLot: { sellerId: userId } },
+      select: { id: true }
+    });
+    const roomIds = ownedRooms.map((room) => room.id);
+
+    const ownedInspections = await transaction.inspection.findMany({
+      where: { OR: [{ capturedBy: userId }, { roomId: { in: roomIds } }] },
+      select: { id: true }
+    });
+    const inspectionIds = ownedInspections.map((inspection) => inspection.id);
+
+    await transaction.detection.deleteMany({ where: { inspectionId: { in: inspectionIds } } });
+    await transaction.inspection.deleteMany({ where: { OR: [{ capturedBy: userId }, { roomId: { in: roomIds } }] } });
+    await transaction.inspectionRequest.deleteMany({ where: { OR: [{ requestedBy: userId }, { roomId: { in: roomIds } }] } });
+    await transaction.report.deleteMany({ where: { OR: [{ generatedBy: userId }, { roomId: { in: roomIds } }] } });
+    await transaction.roomMember.deleteMany({ where: { OR: [{ userId }, { roomId: { in: roomIds } }] } });
+    await transaction.inspectionRoom.deleteMany({ where: { id: { in: roomIds } } });
+    await transaction.coffeeLot.deleteMany({ where: { sellerId: userId } });
+    await transaction.user.delete({ where: { id: userId } });
+
+    return { userId, deleted: true };
+  });
+}
+
 export async function registerUser(input: { name: string; email: string; password: string; role: string }) {
   const email = input.email.trim().toLowerCase();
   if (!input.name.trim() || !email || input.password.length < 8) throw new Error("Invalid registration data");

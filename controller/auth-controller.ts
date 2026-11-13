@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import { loginUser, registerUser, signInWithApple } from "../services/auth-service.js";
+import { deleteAccount, loginUser, registerUser, signInWithApple } from "../services/auth-service.js";
 import { errorMessage, failure, success } from "../lib/http-response.js";
 
 const register: RequestHandler = async (req, res) => {
@@ -18,4 +18,12 @@ const apple: RequestHandler = async (req, res) => {
     failure(res, 401, "Invalid Apple identity token", "APPLE_AUTH_FAILED");
   }
 };
-export default { register, login, apple };
+const deleteUserAccount: RequestHandler = async (req, res) => {
+  try {
+    if (!req.user) { failure(res, 401, "Authentication required", "UNAUTHORIZED"); return; }
+    success(res, await deleteAccount(req.user.id), 200, "Account deleted successfully");
+  } catch (error) {
+    failure(res, 400, errorMessage(error, "Account deletion failed"), "ACCOUNT_DELETION_FAILED");
+  }
+};
+export default { register, login, apple, deleteUserAccount };
