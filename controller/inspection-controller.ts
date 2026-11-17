@@ -23,8 +23,10 @@ const execute = (operation: (req: AuthRequest) => Promise<unknown>, status = 200
 };
 
 const createLiveKitToken = execute(async (req) => {
-  if (!req.user || typeof req.body?.roomName !== "string") throw new Error("roomName is required");
-  return service.createLiveKitToken(req.user, req.body.roomName);
+  if (typeof req.body?.roomName !== "string") throw new Error("roomName is required");
+  if (req.user) return service.createUserLiveKitToken(req.user.id, req.body.roomName);
+  if (typeof req.body?.guestSessionId !== "string") throw new Error("guestSessionId is required");
+  return service.createGuestLiveKitToken(req.body.roomName, req.body.guestSessionId);
 });
 
 export default {
@@ -34,13 +36,17 @@ export default {
   createLot: execute((req) => service.createLot(userId(req)!, req.body), 201, "Lot created"),
   getAllHistories: execute((req) => service.getAllHistories(historyFilters(req))),
   getHistoryById: execute((req) => service.getHistoryById(Number(req.params.id))),
-  createRoom: execute((req) => service.createRoom(userId(req)!, req.body), 201, "Room created"),
+  createRoom: execute((req) => service.createRoom(userId(req)!, { ...req.body, role: req.user?.role }), 201, "Room created"),
   getRoom: execute((req) => service.getRoom(param(req, "roomCode"))),
+  getRecentRooms: execute((req) => service.getRecentRooms(userId(req)!)),
+  getAvailableRooms: execute(() => service.getAvailableRooms()),
+  completeRoom: execute((req) => service.completeRoom(param(req, "roomCode"), userId(req)!), 200, "Room completed"),
+  leaveRoom: execute((req) => service.leaveRoom(param(req, "roomCode"), userId(req)!), 200, "Left room"),
   joinRoom: execute((req) => {
     const role = req.authRole ?? req.user?.role ?? req.body?.role;
     if (!role || !["farmer", "seller", "buyer", "guest"].includes(role)) throw new Error("A valid role is required");
     if (!req.user && role !== "guest") throw new Error("Guest role is required for unauthenticated joining");
-    return service.joinRoom(param(req, "roomCode"), req.user?.id ?? null, role);
+    return service.joinRoom(param(req, "roomCode"), req.user?.id ?? null, role, req.body?.displayName, req.body?.guestSessionId);
   }, 200, "Joined room"),
   createRequest: execute((req) => service.createRequest(param(req, "roomCode"), userId(req)!, req.body), 201, "Request created"),
   createInspection: execute((req) => service.createInspection(param(req, "roomCode"), userId(req)!, req.body), 201, "Inspection created"),

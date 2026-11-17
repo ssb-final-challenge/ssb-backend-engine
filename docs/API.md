@@ -266,11 +266,12 @@ Request:
 
 ```json
 {
-  "coffeeLotId": 1,
-  "role": "seller",
+  "commodity": "Robusta",
   "scheduledAt": "2026-11-12T09:00:00.000Z"
 }
 ```
+
+`commodity` accepts only `Arabica` or `Robusta`. The backend creates the related coffee lot automatically, so `coffeeLotId` is not required for this flow.
 
 Response `201`:
 
@@ -326,11 +327,12 @@ For a guest without a login token:
 
 ```json
 {
-  "role": "guest"
+  "role": "guest",
+  "displayName": "Budi"
 }
 ```
 
-An authenticated seller or buyer cannot override their role using the request body. Rejoining the same room updates the existing membership. Guest memberships have no `userId`.
+An authenticated seller or buyer cannot override their role using the request body. A guest receives a `guestSessionId`, which the mobile app must save for reconnecting and requesting a refreshed LiveKit token.
 
 Response `200`:
 
@@ -341,7 +343,14 @@ Response `200`:
   "data": {
     "id": 1,
     "roomCode": "room-mwacb7lc",
-    "status": "active"
+    "status": "active",
+    "guestSessionId": "guest-session-uuid",
+    "livekit": {
+      "serverUrl": "wss://project.livekit.cloud",
+      "participantToken": "livekit-jwt",
+      "roomName": "room-mwacb7lc",
+      "role": "guest"
+    }
   }
 }
 ```
@@ -561,6 +570,15 @@ Request:
 ```
 
 The user identity and role come from the JWT, not from the request body.
+
+For a guest reconnect, send the saved session ID instead of a JWT:
+
+```json
+{
+  "roomName": "room-mwacb7lc",
+  "guestSessionId": "guest-session-uuid"
+}
+```
 
 Response `200`:
 
