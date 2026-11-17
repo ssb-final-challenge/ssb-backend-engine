@@ -587,3 +587,25 @@ Response `200`:
 6. Buyer joins using `POST /inspections/rooms/:roomCode/join`.
 7. Seller submits inspection results.
 8. Buyer retrieves results from `GET /inspections/history`.
+
+## Universal Link sharing
+
+Seller can share this HTTPS link through WhatsApp:
+
+```text
+https://ssb-backend-engine.vercel.app/join/{roomCode}
+```
+
+Apple Universal Links association file:
+
+```text
+https://ssb-backend-engine.vercel.app/.well-known/apple-app-site-association
+```
+
+The iOS app must configure the Associated Domains entitlement:
+
+```text
+applinks:ssb-backend-engine.vercel.app
+```
+
+The app should handle the incoming path `/join/{roomCode}` and use the room code to call the room detail/join APIs. The backend page is a web fallback for devices where Beansight is not installed.

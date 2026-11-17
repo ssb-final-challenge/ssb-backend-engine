@@ -6,6 +6,7 @@ import { openapi } from "./docs/openapi.js";
 import { privacyPolicyHtml } from "./docs/privacy-policy.js";
 import { supportHtml, supportJson } from "./docs/support.js";
 import { copyrightHtml, copyrightJson } from "./docs/copyright.js";
+import { appleAppSiteAssociation, joinRoomHtml } from "./docs/universal-links.js";
 
 const port = Number.parseInt(process.env.PORT ?? "8787", 10);
 
@@ -34,6 +35,8 @@ app.get(["/support", "/support/", "/api/support", "/api/v1/support"], (_req, res
 app.get(["/copyright", "/copyright/"], (_req, res) => res.type("html").send(copyrightHtml));
 app.get(["/api/copyright", "/api/v1/copyright"], (_req, res) => res.json(copyrightJson));
 app.get(["/api/support.json", "/api/v1/support.json"], (_req, res) => res.json(supportJson));
+app.get("/.well-known/apple-app-site-association", (_req, res) => res.type("application/json").send(JSON.stringify(appleAppSiteAssociation())));
+app.get("/join/:roomCode", (req, res) => res.type("html").send(joinRoomHtml(req.params.roomCode)));
 
 app.get("/health", (_, res) => res.json({ ok: true }));
 if (!process.env.VERCEL) {
