@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import * as service from "../services/inspection-services.js";
 import { errorMessage, failure, success } from "../lib/http-response.js";
 
-type AuthRequest = Parameters<RequestHandler>[0] & { user?: { id: number; name: string; role: string } };
+type AuthRequest = Parameters<RequestHandler>[0] & { user?: { id: number; name: string; role: string }; authRole?: string };
 const userId = (req: AuthRequest) => req.user?.id;
 const param = (req: AuthRequest, name: string) => String(req.params[name]);
 const queryValue = (req: AuthRequest, name: string) => typeof req.query[name] === "string" ? req.query[name] as string : undefined;
@@ -36,7 +36,12 @@ export default {
   getHistoryById: execute((req) => service.getHistoryById(Number(req.params.id))),
   createRoom: execute((req) => service.createRoom(userId(req)!, req.body), 201, "Room created"),
   getRoom: execute((req) => service.getRoom(param(req, "roomCode"))),
-  joinRoom: execute((req) => service.joinRoom(param(req, "roomCode"), userId(req)!, req.body.role ?? "buyer"), 200, "Joined room"),
+  joinRoom: execute((req) => {
+    const role = req.authRole ?? req.user?.role ?? req.body?.role;
+    if (!role || !["farmer", "seller", "buyer", "guest"].includes(role)) throw new Error("A valid role is required");
+    if (!req.user && role !== "guest") throw new Error("Guest role is required for unauthenticated joining");
+    return service.joinRoom(param(req, "roomCode"), req.user?.id ?? null, role);
+  }, 200, "Joined room"),
   createRequest: execute((req) => service.createRequest(param(req, "roomCode"), userId(req)!, req.body), 201, "Request created"),
   createInspection: execute((req) => service.createInspection(param(req, "roomCode"), userId(req)!, req.body), 201, "Inspection created"),
   createReport: execute((req) => service.createReport(param(req, "roomCode"), userId(req)!, req.body), 201, "Report created")

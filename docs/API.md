@@ -316,13 +316,21 @@ Response `200` includes:
 
 `POST /inspections/rooms/:roomCode/join`
 
-Request:
+Request for an authenticated seller or buyer (role is read from the JWT):
+
+```json
+{}
+```
+
+For a guest without a login token:
 
 ```json
 {
-  "role": "buyer"
+  "role": "guest"
 }
 ```
+
+An authenticated seller or buyer cannot override their role using the request body. Rejoining the same room updates the existing membership. Guest memberships have no `userId`.
 
 Response `200`:
 

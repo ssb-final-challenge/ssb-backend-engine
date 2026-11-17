@@ -14,7 +14,8 @@ const apple: RequestHandler = async (req, res) => {
   try {
     const result = await signInWithApple({ identityToken: req.body.identity_token, appleUserId: req.body.apple_user_id, nonce: req.body.nonce, name: req.body.name, email: req.body.email, role: req.body.role });
     success(res, result, 200, "Apple sign-in successful");
-  } catch {
+  } catch (error) {
+    console.error("Apple sign-in failed:", error instanceof Error ? error.message : error);
     failure(res, 401, "Invalid Apple identity token", "APPLE_AUTH_FAILED");
   }
 };

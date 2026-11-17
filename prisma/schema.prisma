@@ -66,12 +66,11 @@ model InspectionRoom {
 model RoomMember {
   id       Int            @id @default(autoincrement())
   roomId   Int            @map("room_id")
-  userId   Int            @map("user_id")
+  userId   Int?           @map("user_id")
   role     String         @db.VarChar(20)
   joinedAt DateTime       @default(now()) @map("joined_at")
   room     InspectionRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@unique([roomId, userId])
+  user     User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   @@map("room_members")
 }
 
