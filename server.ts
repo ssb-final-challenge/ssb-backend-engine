@@ -12,7 +12,7 @@ const port = Number.parseInt(process.env.PORT ?? "8787", 10);
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "12mb" }));
 app.use("/api/auth", authRouter);
 app.use("/api/inspections", inspectionRouter);
 app.use("/api/v1/auth", authRouter);

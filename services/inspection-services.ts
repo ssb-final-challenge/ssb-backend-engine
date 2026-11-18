@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma.js";
 import { AccessToken } from "livekit-server-sdk";
 import type { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
+import { uploadInspectionImage } from "../lib/supabase-storage.js";
 
 export async function createLiveKitToken(user: { id?: number; name: string; role: string }, roomName: string, identity?: string) {
   const livekitUrl = process.env.LIVEKIT_URL;
@@ -129,5 +130,17 @@ export const joinRoom = async (roomCode: string, userId: number | null, role: st
   return { ...joined, guestSessionId: userId ? undefined : sessionId, livekit };
 };
 export const createRequest = (roomCode: string, userId: number, body: any) => prisma.inspectionRoom.update({ where: { roomCode }, data: { requests: { create: { requestedBy: userId, requestType: body.requestType, message: body.message } } }, include: { requests: true } });
-export const createInspection = (roomCode: string, userId: number, body: any) => prisma.inspection.create({ data: { room: { connect: { roomCode } }, capturer: { connect: { id: userId } }, sampleNumber: Number(body.sampleNumber), layer: body.layer, imageUrl: body.imageUrl, modelVersion: body.modelVersion, qualityScore: body.qualityScore, healthyPercent: body.healthyPercent, damagedPercent: body.damagedPercent, insectDamagePercent: body.insectDamagePercent, confidencePercent: body.confidencePercent, detections: { create: body.detections ?? [] } }, include: { detections: true } });
+export const createInspection = async (roomCode: string, userId: number, body: any) => {
+  const room = await prisma.inspectionRoom.findUnique({ where: { roomCode } });
+  if (!room) return null;
+  let imageUrl = body.imageUrl;
+  let imagePath = body.imagePath;
+  if (body.imageBase64) {
+    const uploaded = await uploadInspectionImage(body.imageBase64, body.imageContentType ?? "image/jpeg", userId, roomCode);
+    imageUrl = uploaded.imageUrl;
+    imagePath = uploaded.imagePath;
+  }
+  if (typeof imageUrl !== "string" || !imageUrl) throw new Error("imageBase64 or imageUrl is required");
+  return prisma.inspection.create({ data: { room: { connect: { roomCode } }, capturer: { connect: { id: userId } }, sampleNumber: Number(body.sampleNumber), layer: body.layer, imageUrl, imagePath, modelVersion: body.modelVersion, qualityScore: body.qualityScore, healthyPercent: body.healthyPercent, damagedPercent: body.damagedPercent, insectDamagePercent: body.insectDamagePercent, confidencePercent: body.confidencePercent, detections: { create: body.detections ?? [] } }, include: { detections: true } });
+};
 export const createReport = (roomCode: string, userId: number, body: any) => prisma.report.create({ data: { room: { connect: { roomCode } }, generator: { connect: { id: userId } }, finalQualityScore: body.finalQualityScore, summary: body.summary, pdfUrl: body.pdfUrl } });

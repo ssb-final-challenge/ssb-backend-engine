@@ -97,6 +97,7 @@ model Inspection {
   sampleNumber        Int             @map("sample_number")
   layer               String          @db.VarChar(20)
   imageUrl            String          @map("image_url") @db.VarChar(500)
+  imagePath           String?         @map("image_path") @db.VarChar(500)
   modelVersion        String          @map("model_version") @db.VarChar(50)
   qualityScore        Decimal         @map("quality_score") @db.Decimal(5, 2)
   healthyPercent      Decimal         @map("healthy_percent") @db.Decimal(5, 2)

@@ -450,7 +450,8 @@ Request:
 {
   "sampleNumber": 1,
   "layer": "top",
-  "imageUrl": "https://cdn.example.com/sample.jpg",
+  "imageBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
+  "imageContentType": "image/jpeg",
   "modelVersion": "coffee-model-1",
   "qualityScore": 86.5,
   "healthyPercent": 86.5,
@@ -486,6 +487,8 @@ Supported filters:
 ?sampleNumber=1
 ?from=2026-01-01&to=2026-12-31
 ```
+
+The backend uploads `imageBase64` to the public Supabase Storage bucket configured by `SUPABASE_STORAGE_BUCKET`, stores both `imagePath` and `imageUrl`, and returns the public `imageUrl` in the inspection response. Swift can load `imageUrl` directly with `AsyncImage` or an image library. `imageUrl` remains accepted for legacy/external URLs.
 
 History returns inspection data, detections, room, and coffee lot including `variety`.
 The result is scoped to rooms where the authenticated user is a member. A user cannot read another user's inspection history.
