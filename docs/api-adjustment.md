@@ -488,6 +488,7 @@ Supported filters:
 ```
 
 History returns inspection data, detections, room, and coffee lot including `variety`.
+The result is scoped to rooms where the authenticated user is a member. A user cannot read another user's inspection history.
 
 ### History detail
 
@@ -495,6 +496,8 @@ History returns inspection data, detections, room, and coffee lot including `var
 GET /inspections/history/{id}
 Authorization: Bearer <accessToken>
 ```
+
+The detail endpoint applies the same room-membership authorization rule.
 
 ### Inspection request
 

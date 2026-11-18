@@ -34,6 +34,7 @@ export const listLots = () => prisma.coffeeLot.findMany({ include: { seller: { s
 export const getLot = (id: number) => prisma.coffeeLot.findUnique({ where: { id }, include: { seller: { select: { id: true, name: true } }, inspectionRooms: true } });
 export const createLot = (sellerId: number, body: any) => prisma.coffeeLot.create({ data: { sellerId, lotCode: body.lotCode, name: body.name, variety: body.variety, origin: body.origin, quantityKg: body.quantityKg } });
 export interface HistoryFilters {
+  userId: number;
   roomCode?: string;
   coffeeLotId?: number;
   capturedBy?: number;
@@ -42,16 +43,20 @@ export interface HistoryFilters {
   to?: Date;
 }
 
-export const getAllHistories = (filters: HistoryFilters = {}) => {
+export const getAllHistories = (filters: HistoryFilters) => {
   const where: Prisma.InspectionWhereInput = {
     ...(filters.capturedBy ? { capturedBy: filters.capturedBy } : {}),
     ...(filters.sampleNumber ? { sampleNumber: filters.sampleNumber } : {}),
     ...(filters.from || filters.to ? { createdAt: { ...(filters.from ? { gte: filters.from } : {}), ...(filters.to ? { lte: filters.to } : {}) } } : {}),
-    ...(filters.roomCode || filters.coffeeLotId ? { room: { ...(filters.roomCode ? { roomCode: filters.roomCode } : {}), ...(filters.coffeeLotId ? { coffeeLotId: filters.coffeeLotId } : {}) } } : {})
+    room: {
+      members: { some: { userId: filters.userId } },
+      ...(filters.roomCode ? { roomCode: filters.roomCode } : {}),
+      ...(filters.coffeeLotId ? { coffeeLotId: filters.coffeeLotId } : {})
+    }
   };
   return prisma.inspection.findMany({ where, include: { detections: true, room: { include: { coffeeLot: true } } }, orderBy: { createdAt: "desc" } });
 };
-export const getHistoryById = (id: number) => prisma.inspection.findUnique({ where: { id }, include: { detections: true, room: { include: { coffeeLot: true } } } });
+export const getHistoryById = (id: number, userId: number) => prisma.inspection.findFirst({ where: { id, room: { members: { some: { userId } } } }, include: { detections: true, room: { include: { coffeeLot: true } } } });
 const COFFEE_VARIETIES = ["Arabica", "Robusta"] as const;
 
 const normalizeVariety = (value: unknown) => {

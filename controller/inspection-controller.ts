@@ -7,6 +7,7 @@ const userId = (req: AuthRequest) => req.user?.id;
 const param = (req: AuthRequest, name: string) => String(req.params[name]);
 const queryValue = (req: AuthRequest, name: string) => typeof req.query[name] === "string" ? req.query[name] as string : undefined;
 const historyFilters = (req: AuthRequest) => ({
+  userId: userId(req)!,
   roomCode: queryValue(req, "roomCode"),
   coffeeLotId: queryValue(req, "coffeeLotId") ? Number(queryValue(req, "coffeeLotId")) : undefined,
   capturedBy: queryValue(req, "capturedBy") ? Number(queryValue(req, "capturedBy")) : undefined,
@@ -35,7 +36,7 @@ export default {
   getLot: execute((req) => service.getLot(Number(req.params.id))),
   createLot: execute((req) => service.createLot(userId(req)!, req.body), 201, "Lot created"),
   getAllHistories: execute((req) => service.getAllHistories(historyFilters(req))),
-  getHistoryById: execute((req) => service.getHistoryById(Number(req.params.id))),
+  getHistoryById: execute((req) => service.getHistoryById(Number(req.params.id), userId(req)!)),
   createRoom: execute((req) => service.createRoom(userId(req)!, { ...req.body, role: req.user?.role }), 201, "Room created"),
   getRoom: execute((req) => service.getRoom(param(req, "roomCode"))),
   getRecentRooms: execute((req) => service.getRecentRooms(userId(req)!)),
