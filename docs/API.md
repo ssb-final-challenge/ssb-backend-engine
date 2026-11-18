@@ -400,7 +400,8 @@ Request:
 {
   "sampleNumber": 1,
   "layer": "top",
-  "imageUrl": "https://cdn.example.com/sample.jpg",
+  "imageBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...",
+  "imageContentType": "image/jpeg",
   "modelVersion": "coffee-model-1",
   "qualityScore": 86.5,
   "healthyPercent": 86.5,
