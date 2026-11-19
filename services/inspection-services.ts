@@ -124,7 +124,7 @@ export const createRoom = (userId: number, body: any) => prisma.$transaction(asy
   }
   return tx.inspectionRoom.create({
     data: {
-      coffeeLotId, roomCode: `room-${randomUUID().replaceAll("-", "").slice(0, 16)}`, scheduledAt,
+      coffeeLotId, roomCode: `room-${Date.now().toString(36)}`, scheduledAt,
       members: { create: { userId, role: user.role } }
     },
     include: { coffeeLot: roomInclude.coffeeLot }
