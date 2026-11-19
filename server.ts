@@ -12,7 +12,18 @@ const port = Number.parseInt(process.env.PORT ?? "8787", 10);
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "12mb" }));
+app.use(express.json({ limit: "15mb" }));
+app.use(((error, _req, res, next) => {
+  if (error?.type === "entity.too.large") {
+    res.status(413).json({ success: false, error: { code: "IMAGE_TOO_LARGE", message: "Gambar terlalu besar. Kurangi resolusi lalu coba lagi." } });
+    return;
+  }
+  if (error instanceof SyntaxError) {
+    res.status(400).json({ success: false, error: { code: "INVALID_JSON", message: "Data permintaan tidak dapat dibaca." } });
+    return;
+  }
+  next(error);
+}) as express.ErrorRequestHandler);
 app.use("/api/auth", authRouter);
 app.use("/api/inspections", inspectionRouter);
 app.use("/api/v1/auth", authRouter);

@@ -50,6 +50,7 @@ model CoffeeLot {
 
 model InspectionRoom {
   id          Int                 @id @default(autoincrement())
+  finalResult Json?               @map("final_result")
   coffeeLotId Int                 @map("coffee_lot_id")
   roomCode    String              @unique @map("room_code") @db.VarChar(50)
   status      RoomStatus          @default(scheduled)

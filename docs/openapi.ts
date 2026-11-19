@@ -45,12 +45,50 @@ export const openapi = {
     "/inspections/lots/{id}": { get: { tags: ["Inspections"], security: auth, parameters: [param("id", "integer")], responses: { 200: ok(ref("CoffeeLot"), lot), 404: fail("Resource not found") } } },
     "/inspections/rooms": { post: { tags: ["Inspections"], security: auth, requestBody: { required: true, content: { "application/json": { schema: { type: "object", required: ["commodity"], properties: { commodity: { type: "string", enum: ["Arabica", "Robusta"] }, scheduledAt: { type: "string", format: "date-time", nullable: true } } }, example: { commodity: "Robusta" } } } }, responses: { 201: ok(ref("Room"), room, "Room created"), 400: fail("commodity must be Arabica or Robusta") } } },
     "/inspections/rooms/{roomCode}": { get: { tags: ["Inspections"], security: auth, parameters: [param("roomCode")], responses: { 200: ok(ref("Room"), room), 404: fail("Resource not found") } } },
-    "/inspections/rooms/{roomCode}/join": { post: { tags: ["Inspections"], parameters: [param("roomCode")], requestBody: { content: { "application/json": { schema: { type: "object", properties: { displayName: { type: "string", example: "Budi" }, guestSessionId: { type: "string", example: "guest-session-uuid" } } }, example: { displayName: "Budi" } } } }, responses: { 200: ok(ref("Room"), { id: 1, roomCode: room.roomCode, status: "active", guestSessionId: "guest-session-uuid", livekit: { serverUrl: "wss://project.livekit.cloud", participantToken: "livekit-jwt", roomName: room.roomCode, role: "guest" } }, "Joined room") } } },
+    "/inspections/rooms/{roomCode}/join": { post: { tags: ["Inspections"], parameters: [param("roomCode")], requestBody: { content: { "application/json": { schema: { type: "object", properties: { role: { type: "string", enum: ["guest"] }, displayName: { type: "string", example: "Budi" }, guestSessionId: { type: "string", example: "guest-session-uuid" } } }, examples: { account: { value: {} }, guest: { value: { role: "guest", displayName: "Budi" } } } } } }, responses: { 200: ok(ref("Room"), { id: 1, roomCode: room.roomCode, status: "active", guestSessionId: "guest-session-uuid", livekit: { serverUrl: "wss://project.livekit.cloud", participantToken: "livekit-jwt", roomName: room.roomCode, role: "guest" } }, "Joined room") } } },
     "/inspections/rooms/{roomCode}/requests": { post: { tags: ["Inspections"], security: auth, parameters: [param("roomCode")], requestBody: { content: { "application/json": { example: { requestType: "rescan", message: "Inspect the other side" } } } }, responses: { 201: ok({ type: "object", properties: { requests: { type: "array", items: ref("InspectionRequest") } } }, { requests: [{ id: 1, roomId: 1, requestedBy: 2, requestType: "rescan", status: "pending", message: "Inspect the other side", createdAt: "2026-11-12T08:20:00.000Z" }] }, "Request created") } } },
     "/inspections/rooms/{roomCode}/inspections": { post: { tags: ["Inspections"], security: auth, parameters: [param("roomCode")], description: "Submit inspection results. Send imageBase64 to upload to Supabase Storage. Maximum decoded image size is 10 MB.", requestBody: { required: true, content: { "application/json": { schema: ref("InspectionInput"), example: { sampleNumber: 1, layer: "top", imageBase64: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ...", imageContentType: "image/jpeg", modelVersion: "coffee-model-1", qualityScore: 86.5, healthyPercent: 86.5, damagedPercent: 8.5, insectDamagePercent: 5, confidencePercent: 92, detections: [{ label: "insect_damage", confidence: 0.92, x: 0.25, y: 0.3, width: 0.1, height: 0.12 }] } } } }, responses: { 201: ok(ref("Inspection"), inspection, "Inspection created"), 400: fail("Invalid image or inspection payload") } } },
     "/inspections/history": { get: { tags: ["Inspections"], security: auth, parameters: [query("roomCode"), query("coffeeLotId", "integer"), query("capturedBy", "integer"), query("sampleNumber", "integer"), query("from"), query("to")], responses: { 200: ok({ type: "array", items: ref("Inspection") }, [inspection]) } } },
     "/inspections/history/{id}": { get: { tags: ["Inspections"], security: auth, parameters: [param("id", "integer")], responses: { 200: ok(ref("Inspection"), inspection), 404: fail("Resource not found") } } },
     "/inspections/rooms/{roomCode}/reports": { post: { tags: ["Inspections"], security: auth, parameters: [param("roomCode")], requestBody: { content: { "application/json": { example: { finalQualityScore: 86.5, summary: "Good quality sample", pdfUrl: "https://cdn.example.com/report.pdf" } } } }, responses: { 201: ok(ref("Report"), { id: 1, roomId: 1, generatedBy: 1, finalQualityScore: "86.50", summary: "Good quality sample", pdfUrl: "https://cdn.example.com/report.pdf", createdAt: "2026-11-12T08:30:00.000Z" }, "Report created") } } },
+    "/inspections/rooms/recent": { get: {
+      tags: ["Inspections"], security: auth, summary: "List the account's joinable rooms",
+      responses: { 200: ok({ type: "array", items: ref("Room") }, [room]) }
+    } },
+    "/inspections/rooms/available": { get: {
+      tags: ["Inspections"], security: auth,
+      responses: { 200: ok({ type: "array", items: ref("Room") }, [room]) }
+    } },
+    "/inspections/rooms/{roomCode}/leave": { post: {
+      tags: ["Inspections"], security: auth, parameters: [param("roomCode")],
+      responses: { 200: ok({ type: "object" }, { roomCode: room.roomCode, status: "active" }) }
+    } },
+    "/inspections/guest-sessions/claim": { post: {
+      tags: ["Inspections"], security: auth, summary: "Save guest history to the authenticated buyer account",
+      requestBody: { required: true, content: { "application/json": { schema: {
+        type: "object", required: ["guestSessionId"], properties: { guestSessionId: { type: "string" } }
+      } } } },
+      responses: { 200: ok({ type: "object" }, { roomCode: room.roomCode, inspectionCount: 1 }),
+        403: fail("Guest session belongs to another account"), 409: fail("Seller has not saved the result yet") }
+    } },
+    "/inspections/rooms/{roomCode}/status": { post: {
+      tags: ["Inspections"], security: [...auth, {}], parameters: [param("roomCode")],
+      requestBody: { content: { "application/json": { example: { guestSessionId: "guest-session-uuid" } } } },
+      responses: { 200: ok({ type: "object", properties: {
+        roomCode: { type: "string" }, status: { type: "string" }, result: { type: "object", nullable: true }
+      } }, { roomCode: room.roomCode, status: "completed", result: null }), 403: fail("Room access denied") }
+    } },
+    "/inspections/rooms/{roomCode}/complete": { post: {
+      tags: ["Inspections"], security: auth, parameters: [param("roomCode")],
+      summary: "Upload the image, then save the inspection, report and completed room together",
+      requestBody: { content: { "application/json": { schema: { type: "object", properties: {
+        inspection: ref("InspectionInput"),
+        report: { type: "object", properties: { finalQualityScore: { type: "number" }, summary: { type: "string" } } },
+        result: { type: "object", description: "Final result with grade, confidence, totalBeans, healthyBeans and defects." }
+      } } } } },
+      responses: { 200: ok({ type: "object" }, { roomCode: room.roomCode, status: "completed" }),
+        403: fail("Host required"), 503: fail("Image storage unavailable; retry without losing the room") }
+    } },
     "/inspections/livekit/token": { post: { tags: ["LiveKit"], requestBody: { required: true, content: { "application/json": { examples: { authenticated: { value: { roomName: "room-mwacb7lc" } }, guest: { value: { roomName: "room-mwacb7lc", guestSessionId: "guest-session-uuid" } } } } } }, responses: { 200: ok(ref("LiveKitData"), { serverUrl: "wss://project.livekit.cloud", participantToken: "livekit-jwt", roomName: "room-mwacb7lc", role: "guest" }, "Token created") } } }
   }
 } as const;
