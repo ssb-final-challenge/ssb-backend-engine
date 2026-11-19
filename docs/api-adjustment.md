@@ -584,3 +584,14 @@ GET /api/docs/openapi.json
 - Allow seller and authenticated buyer to rejoin rooms with status `scheduled` or `active`.
 - Only the seller/farmer can complete the room.
 - Guest users can observe but must authenticate before creating inspection results or reports.
+
+## Guest history, audio, and completion
+
+- Guest history is linked with `POST /inspections/guest-sessions/claim` and a buyer JWT. The body contains `guestSessionId`. The response contains `roomCode` and `inspectionCount`. Repeating a claim for the same account succeeds. A different account receives `403 GUEST_SESSION_CLAIMED`. A room with no saved result receives `409 HISTORY_NOT_READY`.
+- Buyer and guest LiveKit tokens allow publishing microphone audio only. Seller tokens allow camera and microphone. Metadata contains the server-selected role, and the token's name is the account or guest name.
+- `POST /inspections/rooms/{roomCode}/complete` accepts `inspection`, `report`, and optional `result`. Send inspection and report together. Uploading the sample to Supabase Storage succeeds before the database transaction saves both records and closes the room. Repeating completion keeps one saved inspection and report.
+- A failed upload returns `503 STORAGE_UNAVAILABLE` and leaves the room open. Retrying the same image reuses its object path. A successfully uploaded object may remain in Storage after a later database failure and can be reused by the retry.
+- `POST /inspections/rooms/{roomCode}/status` accepts either an account JWT and empty body or a guest body containing `guestSessionId`. It returns `roomCode`, `status`, and the saved final `result`, allowing guests to recover missed completion messages.
+- Completed rooms reject joins and token refresh. Room details omit guest session secrets. History list and detail are scoped to the owner and room members, including buyers who left.
+- Deploy migration `20261119100000_room_completion_result`, then regenerate Prisma. Sample images continue to use Supabase Storage.
+- The additional regression suite is `npm run test:rooms`. Use a disposable database and test storage bucket. The existing `npm run test:e2e` checks the legacy inspection and report endpoints.

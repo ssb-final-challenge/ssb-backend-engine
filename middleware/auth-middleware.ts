@@ -1,5 +1,6 @@
 import type { RequestHandler } from "express";
 import { prisma } from "../lib/prisma.js";
+import { failure } from "../lib/http-response.js";
 import { verifyAccessToken } from "../lib/jwt.js";
 
 declare global {
@@ -7,39 +8,42 @@ declare global {
 }
 
 export const requireUser: RequestHandler = async (req, res, next) => {
+  const header = req.header("authorization");
+  if (!header?.startsWith("Bearer ")) {
+    failure(res, 401, "Masuk untuk melanjutkan.", "AUTH_REQUIRED");
+    return;
+  }
+  let id: number;
   try {
-    const header = req.header("authorization");
-    if (!header?.startsWith("Bearer ")) { res.status(401).json({ error: "Bearer token is required" }); return; }
-    const payload = verifyAccessToken(header.slice(7));
-    const id = Number(payload.sub);
-    if (!Number.isInteger(id) || id <= 0) throw new Error("Invalid subject");
-    const user = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, role: true } });
-    if (!user) { res.status(401).json({ error: "User not found" }); return; }
+    id = Number(verifyAccessToken(header.slice(7)).sub);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Invalid subject");
+  } catch {
+    failure(res, 401, "Sesi akun telah habis. Masuk kembali.", "AUTH_EXPIRED");
+    return;
+  }
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id }, select: { id: true, name: true, email: true, role: true }
+    });
+    if (!user) {
+      failure(res, 401, "Akun tidak ditemukan. Masuk kembali.", "AUTH_INVALID");
+      return;
+    }
     req.user = user;
     req.authRole = user.role;
-    next();
-  } catch { res.status(401).json({ error: "Invalid or expired token" }); }
+  } catch {
+    failure(res, 503, "Layanan akun sedang bermasalah. Coba lagi nanti.", "AUTH_UNAVAILABLE");
+    return;
+  }
+  next();
 };
 
-export const optionalUser: RequestHandler = async (req, _res, next) => {
-  try {
-    const header = req.header("authorization");
-    if (!header?.startsWith("Bearer ")) { next(); return; }
-    const payload = verifyAccessToken(header.slice(7));
-    const id = Number(payload.sub);
-    if (!Number.isInteger(id) || id <= 0) { next(); return; }
-    const user = await prisma.user.findUnique({ where: { id }, select: { id: true, name: true, email: true, role: true } });
-    if (user) {
-      req.user = user;
-      req.authRole = user.role;
-    } else if (payload.role === "guest") {
-      req.authRole = "guest";
-    }
-  } catch { /* Invalid optional credentials are treated as guest access. */ }
+export const optionalUser: RequestHandler = (req, res, next) => {
+  if (req.header("authorization")) return requireUser(req, res, next);
   next();
 };
 
 export const requireRole = (...roles: string[]): RequestHandler => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) { res.status(403).json({ error: "Insufficient role" }); return; }
+  if (!req.user || !roles.includes(req.user.role)) { failure(res, 403, "Akun ini tidak memiliki izin untuk tindakan tersebut.", "ROLE_REQUIRED"); return; }
   next();
 };
